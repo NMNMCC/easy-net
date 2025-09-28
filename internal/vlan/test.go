@@ -4,11 +4,12 @@
 package vlan
 
 import (
-	"log/slog"
+	"fmt"
 	"time"
 
 	"github.com/insomniacslk/dhcp/dhcpv4/client4"
 	"github.com/vishvananda/netlink"
+	"nmnm.cc/easy-net/internal/log"
 )
 
 type TestConfig struct {
@@ -16,12 +17,12 @@ type TestConfig struct {
 	ID   uint16
 }
 
-func Test(cfg *TestConfig) error {
-	logger := slog.With("component", "vlan", "id", cfg.ID)
+var vlanTestLogger = log.New("vlan/test")
 
+func Test(cfg *TestConfig) error {
 	master, err := netlink.LinkByName(cfg.Link)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get link by name: %w", err)
 	}
 
 	attrs := netlink.NewLinkAttrs()
@@ -33,46 +34,43 @@ func Test(cfg *TestConfig) error {
 		VlanId:    int(cfg.ID),
 	}
 
-	logger.Info("adding VLAN interface", "link", cfg.Link)
+	vlanTestLogger.Info("adding VLAN interface", "link", cfg.Link)
 	if err := netlink.LinkAdd(vlan); err != nil {
-		logger.Error("failed to add VLAN interface", "name", vlan.Name, "error", err)
-		return err
+		return fmt.Errorf("failed to add VLAN interface %s: %w", vlan.Name, err)
 	}
 	defer func() {
-		logger.Info("removing VLAN interface", "name", vlan.Name)
+		vlanTestLogger.Info("removing VLAN interface", "name", vlan.Name)
 		if err := netlink.LinkDel(vlan); err != nil {
-			logger.Error("failed to remove VLAN interface", "name", vlan.Name, "error", err)
+			vlanTestLogger.Error("failed to remove VLAN interface", "name", vlan.Name, "error", err)
 			return
 		}
-		logger.Info("removed VLAN interface", "name", vlan.Name)
+		vlanTestLogger.Info("removed VLAN interface", "name", vlan.Name)
 	}()
-	logger.Info("added VLAN interface", "name", vlan.Name)
+	vlanTestLogger.Info("added VLAN interface", "name", vlan.Name)
 
-	// logger.Info("setting master and bringing up", "name", vlan.Name)
+	// vlanTestLogger.Info("setting master and bringing up", "name", vlan.Name)
 	// if err := netlink.LinkSetMaster(vlan, master); err != nil {
-	// 	logger.Error("failed to set master for VLAN interface", "name", vlan.Name, "error", err)
+	// 	vlanTestLogger.Error("failed to set master for VLAN interface", "name", vlan.Name, "error", err)
 	// 	return err
 	// }
-	// logger.Info("set master for VLAN interface", "name", vlan.Name)
+	// vlanTestLogger.Info("set master for VLAN interface", "name", vlan.Name)
 
-	logger.Info("bringing up VLAN interface", "name", vlan.Name)
+	vlanTestLogger.Info("bringing up VLAN interface", "name", vlan.Name)
 	if err := netlink.LinkSetUp(vlan); err != nil {
-		logger.Error("failed to bring up VLAN interface", "name", vlan.Name, "error", err)
-		return err
+		return fmt.Errorf("failed to bring up VLAN interface %s: %w", vlan.Name, err)
 	}
-	logger.Info("brought up VLAN interface", "name", vlan.Name)
+	vlanTestLogger.Info("brought up VLAN interface", "name", vlan.Name)
 
 	client := &client4.Client{
 		ReadTimeout:  1 * time.Second,
 		WriteTimeout: 1 * time.Second,
 	}
 
-	logger.Info("exchanging DHCP", "name", vlan.Name)
+	vlanTestLogger.Info("exchanging DHCP", "name", vlan.Name)
 	if _, err := client.Exchange(vlan.Name); err != nil {
-		logger.Error("failed to exchange DHCP", "name", vlan.Name, "error", err)
-		return err
+		return fmt.Errorf("failed to exchange DHCP on %s: %w", vlan.Name, err)
 	}
-	logger.Info("succeeded to exchange DHCP", "name", vlan.Name)
+	vlanTestLogger.Info("succeeded to exchange DHCP", "name", vlan.Name)
 
 	return nil
 }

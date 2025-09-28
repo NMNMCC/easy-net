@@ -5,7 +5,8 @@ package vlan
 
 import (
 	"fmt"
-	"log/slog"
+
+	"nmnm.cc/easy-net/internal/log"
 )
 
 type AttackConfig struct {
@@ -13,13 +14,13 @@ type AttackConfig struct {
 	Link  string
 }
 
-func Attack(cfg *AttackConfig) error {
-	logger := slog.With("component", "vlan", "start", cfg.Start)
+var vlanAttackLogger = log.New("vlan/attack")
 
+func Attack(cfg *AttackConfig) error {
 	var start uint16 = cfg.Start
 	var count uint16 = 0
 
-	logger.Info("starting VLAN attack", "link", cfg.Link, "start", start)
+	vlanAttackLogger.Info("starting VLAN attack", "link", cfg.Link, "start", start)
 	for {
 		if count >= 4095 {
 			break
@@ -36,13 +37,15 @@ func Attack(cfg *AttackConfig) error {
 			Link: cfg.Link,
 			ID:   id,
 		}); err == nil {
-			logger.Info("found valid VLAN ID", "id", id)
+			vlanAttackLogger.Info("found valid VLAN ID", "id", id)
 			return nil
+		} else {
+			vlanAttackLogger.Warn("failed to test VLAN ID", "id", id, "error", err)
 		}
 
 		count++
 	}
 
-	logger.Info("VLAN attack finished, no valid ID found")
+	vlanAttackLogger.Info("VLAN attack finished, no valid ID found")
 	return fmt.Errorf("attack failed")
 }

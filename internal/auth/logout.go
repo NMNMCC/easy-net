@@ -2,12 +2,16 @@ package auth
 
 import (
 	"bytes"
+	"fmt"
 	"io"
-	"log/slog"
 	"mime/multipart"
 	"net/http"
 	"net/url"
+
+	"nmnm.cc/easy-net/internal/log"
 )
+
+var logoutLogger = log.New("auth/logout")
 
 func NewLogoutReq(base, userid string) (*http.Request, error) {
 	url, err := url.Parse(base)
@@ -40,21 +44,18 @@ type LogoutConfig struct {
 }
 
 func Logout(cfg *LogoutConfig) error {
-	logger := slog.With("component", "logout")
-
 	client := NewClient(cfg.Link)
 
 	req, err := NewLogoutReq(cfg.Base, cfg.UserID)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create new logout request: %w", err)
 	}
 
-	logger.Info("logging out", "userid", cfg.UserID)
+	logoutLogger.Info("logging out", "userid", cfg.UserID)
 	if _, err := client.Do(req); err != nil {
-		logger.Error("failed to log out", "error", err)
-		return err
+		return fmt.Errorf("failed to do request: %w", err)
 	}
 
-	logger.Info("logged out", "userid", cfg.UserID)
+	logoutLogger.Info("logged out", "userid", cfg.UserID)
 	return nil
 }

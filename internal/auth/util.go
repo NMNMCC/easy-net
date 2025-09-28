@@ -3,17 +3,18 @@ package auth
 import (
 	"fmt"
 	"io"
-	"log/slog"
 	"math/rand"
 	"net/http"
 	"net/url"
 	"regexp"
 	"time"
+
+	"nmnm.cc/easy-net/internal/log"
 )
 
-func TestConnection() (ok bool) {
-	logger := slog.With("component", "test-connection")
+var utilLogger = log.New("auth/util")
 
+func TestConnection() (ok bool) {
 	client := &http.Client{
 		Timeout: 3 * time.Second,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -23,18 +24,18 @@ func TestConnection() (ok bool) {
 		},
 	}
 
-	logger.Info("testing connection with http://captive.apple.com/hotspot-detect.html")
+	utilLogger.Info("testing connection with http://captive.apple.com/hotspot-detect.html")
 	res, err := client.Get("http://captive.apple.com/hotspot-detect.html")
 	if err != nil {
-		logger.Warn("connection test failed", "error", err)
+		utilLogger.Warn("connection test failed", "error", err)
 		return false
 	}
 	if res.StatusCode != http.StatusOK {
-		logger.Warn("connection test failed", "status", res.StatusCode)
+		utilLogger.Warn("connection test failed", "status", res.StatusCode)
 		return false
 	}
 
-	logger.Info("connection test succeeded")
+	utilLogger.Info("connection test succeeded")
 	return true
 }
 
@@ -44,35 +45,29 @@ var (
 )
 
 func FindPortal(host string) (string, error) {
-	logger := slog.With("component", "find-portal")
-
 	client := &http.Client{
 		Timeout: 3 * time.Second,
 	}
 
-	logger.Info("finding portal", "host", host)
+	utilLogger.Info("finding portal", "host", host)
 	u, _ := url.Parse("http://" + host)
 	res, err := client.Get(u.String())
 	if err != nil {
-		logger.Error("unknown error", "error", err)
-		return "", err
+		return "", fmt.Errorf("failed to get response from host: %w", err)
 	}
 	if res.Request.URL.String() == u.String() {
-		logger.Warn("expect redirect", "url", u.String())
 		return "", ErrExpectRedirect
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		logger.Warn("failed to read response body", "error", err)
-		return "", err
+		return "", fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	re := regexp.MustCompile(`window\.location\.href=\"(.*)"`)
 
 	matches := re.FindStringSubmatch(string(body))
 	if len(matches) < 2 {
-		logger.Warn("expect redirect URL", "body", string(body))
 		return "", ErrExpectRedirectURL
 	}
 
@@ -80,7 +75,7 @@ func FindPortal(host string) (string, error) {
 
 	final := res.Request.URL.ResolveReference(p).String()
 
-	logger.Info("found portal", "url", final)
+	utilLogger.Info("found portal", "url", final)
 	return final, nil
 }
 

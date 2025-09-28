@@ -2,8 +2,10 @@ package auth
 
 import (
 	"context"
-	"log/slog"
+	"fmt"
 	"time"
+
+	"nmnm.cc/easy-net/internal/log"
 )
 
 type AttackConfig struct {
@@ -12,18 +14,18 @@ type AttackConfig struct {
 	Password string
 }
 
-func Attack(cfg *AttackConfig) error {
-	logger := slog.With("component", "attack")
+var attackLogger = log.New("auth/attack")
 
-	logger.Info("detecting connection")
+func Attack(cfg *AttackConfig) error {
+	attackLogger.Info("detecting connection")
 	if TestConnection() {
 		return nil
 	}
-	logger.Info("no connection, start attack", "host", cfg.Host, "password", cfg.Password)
+	attackLogger.Info("no connection, start attack", "host", cfg.Host, "password", cfg.Password)
 
 	base, err := FindPortal(cfg.Host)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to find portal: %w", err)
 	}
 
 	for {
@@ -46,6 +48,7 @@ func Attack(cfg *AttackConfig) error {
 				Password: cfg.Password,
 			})
 			if err != nil {
+				attackLogger.Warn("failed to login", "error", err)
 				continue
 			}
 
@@ -68,14 +71,16 @@ func Attack(cfg *AttackConfig) error {
 
 		switch ctx.Err() {
 		case context.DeadlineExceeded:
-			logger.Info("no connection after login, keep attacking", "userid", userid)
-			Logout(&LogoutConfig{
+			attackLogger.Info("no connection after login, keep attacking", "userid", userid)
+			if err := Logout(&LogoutConfig{
 				Base:   base,
 				Link:   cfg.Link,
 				UserID: userid,
-			})
+			}); err != nil {
+				attackLogger.Error("failed to logout", "error", err)
+			}
 		case context.Canceled:
-			logger.Info("connected, attack finished", "userid", userid)
+			attackLogger.Info("connected, attack finished", "userid", userid)
 			return nil
 		}
 	}

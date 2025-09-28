@@ -6,14 +6,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/samber/lo"
+	"nmnm.cc/easy-net/internal/log"
 )
+
+var loginLogger = log.New("auth/login")
 
 func NewLoginReq(
 	base,
@@ -64,42 +66,36 @@ type LoginConfig struct {
 }
 
 func Login(cfg *LoginConfig) error {
-	logger := slog.With("component", "login")
-
 	client := NewClient(cfg.Link)
 
 	req, err := NewLoginReq(cfg.Base, cfg.UserID, cfg.Password)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create login request: %w", err)
 	}
 
-	logger.Info("logging in", "url", req.URL.String())
+	loginLogger.Info("logging in", "url", req.URL.String())
 	res, err := client.Do(req)
 	if err != nil {
-		logger.Error("unknown error", "error", err)
-		return err
+		return fmt.Errorf("http client failed to do request: %w", err)
 	}
 	if res.StatusCode != http.StatusOK {
-		logger.Error("unknown status code", "status", res.StatusCode)
-		return fmt.Errorf("login failed: %s", cfg.UserID)
+		return fmt.Errorf("login failed with status %d: %s", res.StatusCode, cfg.UserID)
 	}
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		logger.Error("failed to read response body", "error", err)
-		return err
+		return fmt.Errorf("failed to read response body: %w", err)
 	}
 
 	var data LoginRes
 	if err := json.Unmarshal(body, &data); err != nil {
-		logger.Error("failed to parse response body", "error", err, "body", string(body))
-		return err
+		return fmt.Errorf("failed to parse response body: %w", err)
 	}
 	if data.Code != "0" {
-		logger.Error("login failed", "userid", cfg.UserID, "code", data.Code, "message", data.Message)
+		loginLogger.Error("login failed", "userid", cfg.UserID, "code", data.Code, "message", data.Message)
 		return errors.New(string(lo.Must(json.Marshal(data))))
 	}
 
-	logger.Info("login succeeded", "userid", cfg.UserID, "message", data.Message)
+	loginLogger.Info("login succeeded", "userid", cfg.UserID, "message", data.Message)
 	return nil
 }
