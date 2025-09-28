@@ -1,4 +1,4 @@
-package internal
+package auth
 
 import (
 	"bytes"
@@ -56,14 +56,19 @@ func RandomLoginReq(base, password string) (*http.Request, error) {
 	return NewLoginReq(base, userid, password)
 }
 
-func Login(base, userid, password string) error {
+type LoginConfig struct {
+	Base     string
+	Link     string
+	UserID   string
+	Password string
+}
+
+func Login(cfg *LoginConfig) error {
 	logger := slog.With("component", "login")
 
-	client := http.Client{
-		Timeout: 5 * time.Second,
-	}
+	client := NewClient(cfg.Link)
 
-	req, err := NewLoginReq(base, userid, password)
+	req, err := NewLoginReq(cfg.Base, cfg.UserID, cfg.Password)
 	if err != nil {
 		return err
 	}
@@ -76,7 +81,7 @@ func Login(base, userid, password string) error {
 	}
 	if res.StatusCode != http.StatusOK {
 		logger.Error("unknown status code", "status", res.StatusCode)
-		return fmt.Errorf("login failed: %s", userid)
+		return fmt.Errorf("login failed: %s", cfg.UserID)
 	}
 
 	body, err := io.ReadAll(res.Body)
@@ -91,10 +96,10 @@ func Login(base, userid, password string) error {
 		return err
 	}
 	if data.Code != "0" {
-		logger.Error("login failed", "userid", userid, "code", data.Code, "message", data.Message)
+		logger.Error("login failed", "userid", cfg.UserID, "code", data.Code, "message", data.Message)
 		return errors.New(string(lo.Must(json.Marshal(data))))
 	}
 
-	logger.Info("login succeeded", "userid", userid, "message", data.Message)
+	logger.Info("login succeeded", "userid", cfg.UserID, "message", data.Message)
 	return nil
 }

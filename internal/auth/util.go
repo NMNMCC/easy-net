@@ -1,13 +1,15 @@
-package internal
+package auth
 
 import (
 	"fmt"
 	"io"
 	"log/slog"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/url"
 	"regexp"
+	"syscall"
 	"time"
 )
 
@@ -95,4 +97,36 @@ func RandomUserid() string {
 	number := rand.Intn(30) + 1
 
 	return fmt.Sprintf("%02d%02d%02d%02d", institute, year, class, number)
+}
+
+func NewClient(link string) *http.Client {
+	var client *http.Client
+	if link != "" {
+		dialer := &net.Dialer{
+			Control: func(network, address string, c syscall.RawConn) error {
+				var be error
+				err := c.Control(func(fd uintptr) {
+					be = syscall.SetsockoptString(int(fd), syscall.SOL_SOCKET, syscall.SO_BINDTODEVICE, link)
+				})
+
+				if err != nil {
+					return err
+				}
+				return be
+			},
+		}
+		transport := &http.Transport{
+			DialContext: dialer.DialContext,
+		}
+		client = &http.Client{
+			Timeout:   5 * time.Second,
+			Transport: transport,
+		}
+	} else {
+		client = &http.Client{
+			Timeout: 5 * time.Second,
+		}
+	}
+
+	return client
 }

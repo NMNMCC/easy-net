@@ -1,4 +1,4 @@
-package internal
+package auth
 
 import (
 	"bytes"
@@ -7,7 +7,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
-	"time"
 )
 
 func NewLogoutReq(base, userid string) (*http.Request, error) {
@@ -34,24 +33,28 @@ func NewLogoutReq(base, userid string) (*http.Request, error) {
 	return http.NewRequest("POST", url.String(), io.NopCloser(body))
 }
 
-func Logout(base, userid string) error {
+type LogoutConfig struct {
+	Base   string
+	Link   string
+	UserID string
+}
+
+func Logout(cfg *LogoutConfig) error {
 	logger := slog.With("component", "logout")
 
-	client := &http.Client{
-		Timeout: 5 * time.Second,
-	}
+	client := NewClient(cfg.Link)
 
-	req, err := NewLogoutReq(base, userid)
+	req, err := NewLogoutReq(cfg.Base, cfg.UserID)
 	if err != nil {
 		return err
 	}
 
-	logger.Info("logging out", "userid", userid)
+	logger.Info("logging out", "userid", cfg.UserID)
 	if _, err := client.Do(req); err != nil {
 		logger.Error("failed to log out", "error", err)
 		return err
 	}
 
-	logger.Info("logged out", "userid", userid)
+	logger.Info("logged out", "userid", cfg.UserID)
 	return nil
 }

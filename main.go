@@ -1,67 +1,76 @@
 package main
 
 import (
-	"context"
-	"time"
-
-	"nmnm.cc/easy-net/internal"
+	"github.com/alecthomas/kong"
+	"nmnm.cc/easy-net/cli"
+	"nmnm.cc/easy-net/internal/auth"
+	"nmnm.cc/easy-net/internal/vlan"
 )
 
-const (
-	DefaultHost     = "3.3.3.3"
-	DefaultPassword = "112233"
-)
+var CLI struct {
+	Auth cli.AuthCLI `cmd:"" help:"Authentication commands."`
+	Vlan cli.VlanCLI `cmd:"" help:"VLAN commands."`
+}
 
 func main() {
-	if internal.TestConnection() {
-		return
-	}
+	k := kong.Parse(&CLI)
 
-	base, err := internal.FindPortal(DefaultHost)
-	if err != nil {
-		return
-	}
-
-	for {
-		tried := make(map[string]struct{})
-
-		var userid string
-		for {
-			userid = internal.RandomUserid()
-
-			if _, ok := tried[userid]; ok {
-				continue
-			} else {
-				tried[userid] = struct{}{}
-			}
-
-			err := internal.Login(base, userid, DefaultPassword)
+	switch k.Command() {
+	case "auth login":
+		if CLI.Auth.Login.Base == *new(string) {
+			base, err := auth.FindPortal(CLI.Auth.Host)
 			if err != nil {
-				continue
+				k.FatalIfErrorf(err)
 			}
-
-			break
+			CLI.Auth.Login.Base = base
 		}
-
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-
-		go func() {
-			for {
-				time.Sleep(1 * time.Second)
-
-				if internal.TestConnection() {
-					cancel()
-				}
+		if err := auth.Login(&auth.LoginConfig{
+			Base:     CLI.Auth.Login.Base,
+			Link:     CLI.Auth.Link,
+			UserID:   CLI.Auth.Login.UserID,
+			Password: CLI.Auth.Login.Password,
+		}); err != nil {
+			k.FatalIfErrorf(err)
+		}
+	case "auth logout":
+		if CLI.Auth.Login.Base == *new(string) {
+			base, err := auth.FindPortal(CLI.Auth.Host)
+			if err != nil {
+				k.FatalIfErrorf(err)
 			}
-		}()
-
-		<-ctx.Done()
-
-		switch ctx.Err() {
-		case context.DeadlineExceeded:
-			internal.Logout(base, userid)
-		case context.Canceled:
-			return
+			CLI.Auth.Login.Base = base
 		}
+		if err := auth.Logout(&auth.LogoutConfig{
+			Base:   CLI.Auth.Logout.Base,
+			Link:   CLI.Auth.Link,
+			UserID: CLI.Auth.Logout.UserID,
+		}); err != nil {
+			k.FatalIfErrorf(err)
+		}
+	case "auth attack":
+		if err := auth.Attack(&auth.AttackConfig{
+			Host:     CLI.Auth.Host,
+			Link:     CLI.Auth.Link,
+			Password: CLI.Auth.Attack.Password,
+		}); err != nil {
+			k.FatalIfErrorf(err)
+		}
+	case "vlan attack":
+		if err := vlan.Attack(&vlan.AttackConfig{
+			Start: CLI.Vlan.Attack.Start,
+			Link:  CLI.Vlan.Link,
+		}); err != nil {
+			k.FatalIfErrorf(err)
+		}
+	case "vlan test":
+		if err := vlan.Test(&vlan.TestConfig{
+			Link: CLI.Vlan.Link,
+			ID:   CLI.Vlan.Test.ID,
+		}); err != nil {
+			k.FatalIfErrorf(err)
+		}
+	default:
+		k.PrintUsage(true)
+		panic(k.Command())
 	}
 }

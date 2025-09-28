@@ -7,4 +7,22 @@ require (
 	github.com/samber/lo v1.51.0
 )
 
-require golang.org/x/text v0.25.0 // indirect
+require (
+	github.com/bitfield/script v0.24.1 // indirect
+	github.com/insomniacslk/dhcp v0.0.0-20250919081422-f80a1952f48e // indirect
+	github.com/itchyny/gojq v0.12.13 // indirect
+	github.com/itchyny/timefmt-go v0.1.5 // indirect
+	github.com/josharian/native v1.1.0 // indirect
+	github.com/pierrec/lz4/v4 v4.1.14 // indirect
+	github.com/u-root/uio v0.0.0-20230220225925-ffce2a382923 // indirect
+	github.com/vishvananda/netlink v1.3.1 // indirect
+	github.com/vishvananda/netns v0.0.5 // indirect
+	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	mvdan.cc/sh/v3 v3.7.0 // indirect
+)
+
+require (
+	github.com/alecthomas/kong v1.12.1
+	golang.org/x/text v0.25.0 // indirect
+)
