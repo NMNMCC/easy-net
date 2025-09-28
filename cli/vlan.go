@@ -1,8 +1,11 @@
 package cli
 
+import "time"
+
 type VlanCLI struct {
-	Link string `help:"Network link to use for VLAN attack." short:"l"`
-	Test struct {
+	Link    string        `help:"Network link to use for VLAN attack." short:"l"`
+	Timeout time.Duration `help:"DHCP client timeout." default:"1s" short:"t"`
+	Test    struct {
 		ID uint16 `help:"VLAN ID to try." required:"" short:"i"`
 	} `cmd:"try" help:"Test if a VLAN ID is valid."`
 	Attack struct {

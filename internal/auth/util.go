@@ -14,14 +14,10 @@ import (
 
 var utilLogger = log.New("auth/util")
 
-func TestConnection() (ok bool) {
-	client := &http.Client{
-		Timeout: 3 * time.Second,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			// Returning http.ErrUseLastResponse prevents the client from
-			// following the redirect and returns the last received response.
-			return http.ErrUseLastResponse
-		},
+func TestConnection(link string) (ok bool) {
+	client := NewClient(link)
+	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+		return http.ErrUseLastResponse
 	}
 
 	utilLogger.Info("testing connection with http://captive.apple.com/hotspot-detect.html")
@@ -44,10 +40,9 @@ var (
 	ErrExpectRedirectURL = fmt.Errorf("expect redirect URL")
 )
 
-func FindPortal(host string) (string, error) {
-	client := &http.Client{
-		Timeout: 3 * time.Second,
-	}
+func FindPortal(host, link string) (string, error) {
+	// Use the bound client so detection traffic goes out through the specified link.
+	client := NewClient(link)
 
 	utilLogger.Info("finding portal", "host", host)
 	u, _ := url.Parse("http://" + host)

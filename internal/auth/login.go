@@ -33,6 +33,7 @@ func NewLoginReq(
 	query.Set("userid", "756"+userid)
 	query.Set("passwd", password)
 
+	query.Set("hostname", uuid.NewString()[0:8])
 	query.Set("timestamp", fmt.Sprint(time.Now().Unix()))
 	query.Set("uuid", uuid.NewString())
 
@@ -91,7 +92,7 @@ func Login(cfg *LoginConfig) error {
 	if err := json.Unmarshal(body, &data); err != nil {
 		return fmt.Errorf("failed to parse response body: %w", err)
 	}
-	if data.Code != "0" {
+	if data.Code != "0" || data.Message != "认证成功" {
 		loginLogger.Error("login failed", "userid", cfg.UserID, "code", data.Code, "message", data.Message)
 		return errors.New(string(lo.Must(json.Marshal(data))))
 	}

@@ -12,18 +12,19 @@ type AttackConfig struct {
 	Host     string
 	Link     string
 	Password string
+	Wait     time.Duration
 }
 
 var attackLogger = log.New("auth/attack")
 
 func Attack(cfg *AttackConfig) error {
 	attackLogger.Info("detecting connection")
-	if TestConnection() {
+	if TestConnection(cfg.Link) {
 		return nil
 	}
 	attackLogger.Info("no connection, start attack", "host", cfg.Host, "password", cfg.Password)
 
-	base, err := FindPortal(cfg.Host)
+	base, err := FindPortal(cfg.Host, cfg.Link)
 	if err != nil {
 		return fmt.Errorf("failed to find portal: %w", err)
 	}
@@ -55,13 +56,13 @@ func Attack(cfg *AttackConfig) error {
 			break
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), cfg.Wait)
 
 		go func() {
 			for {
 				time.Sleep(1 * time.Second)
 
-				if TestConnection() {
+				if TestConnection(cfg.Link) {
 					cancel()
 				}
 			}

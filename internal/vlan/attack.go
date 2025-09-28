@@ -5,13 +5,15 @@ package vlan
 
 import (
 	"fmt"
+	"time"
 
 	"nmnm.cc/easy-net/internal/log"
 )
 
 type AttackConfig struct {
-	Start uint16
-	Link  string
+	Start   uint16
+	Link    string
+	Timeout time.Duration
 }
 
 var vlanAttackLogger = log.New("vlan/attack")
@@ -22,7 +24,7 @@ func Attack(cfg *AttackConfig) error {
 
 	vlanAttackLogger.Info("starting VLAN attack", "link", cfg.Link, "start", start)
 	for {
-		if count >= 4095 {
+		if count >= 4094 {
 			break
 		}
 
@@ -32,10 +34,14 @@ func Attack(cfg *AttackConfig) error {
 		} else {
 			id = start - (count+1)/2
 		}
+		if id < 1 || id > 4094 {
+			continue
+		}
 
 		if err := Test(&TestConfig{
-			Link: cfg.Link,
-			ID:   id,
+			Link:    cfg.Link,
+			ID:      id,
+			Timeout: cfg.Timeout,
 		}); err == nil {
 			vlanAttackLogger.Info("found valid VLAN ID", "id", id)
 			return nil

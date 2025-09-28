@@ -4,6 +4,7 @@ import (
 	"github.com/alecthomas/kong"
 	"nmnm.cc/easy-net/cli"
 	"nmnm.cc/easy-net/internal/auth"
+	"nmnm.cc/easy-net/internal/line"
 	"nmnm.cc/easy-net/internal/log"
 	"nmnm.cc/easy-net/internal/vlan"
 )
@@ -11,6 +12,7 @@ import (
 var CLI struct {
 	Auth cli.AuthCLI `cmd:"" help:"Authentication commands."`
 	Vlan cli.VlanCLI `cmd:"" help:"VLAN commands."`
+	Line cli.LineCLI `cmd:"line" help:"Send a message in Morse code."`
 }
 
 var logger = log.New("main")
@@ -24,7 +26,7 @@ func main() {
 	case "auth login":
 		if CLI.Auth.Login.Base == *new(string) {
 			var base string
-			base, err = auth.FindPortal(CLI.Auth.Host)
+			base, err = auth.FindPortal(CLI.Auth.Host, CLI.Auth.Link)
 			if err == nil {
 				CLI.Auth.Login.Base = base
 			}
@@ -40,7 +42,7 @@ func main() {
 	case "auth logout":
 		if CLI.Auth.Logout.Base == *new(string) {
 			var base string
-			base, err = auth.FindPortal(CLI.Auth.Host)
+			base, err = auth.FindPortal(CLI.Auth.Host, CLI.Auth.Link)
 			if err == nil {
 				CLI.Auth.Logout.Base = base
 			}
@@ -57,16 +59,23 @@ func main() {
 			Host:     CLI.Auth.Host,
 			Link:     CLI.Auth.Link,
 			Password: CLI.Auth.Attack.Password,
+			Wait:     CLI.Auth.Attack.Wait,
+		})
+	case "vlan test":
+		err = vlan.Test(&vlan.TestConfig{
+			Link: CLI.Vlan.Link,
+			ID:   CLI.Vlan.Test.ID,
 		})
 	case "vlan attack":
 		err = vlan.Attack(&vlan.AttackConfig{
 			Start: CLI.Vlan.Attack.Start,
 			Link:  CLI.Vlan.Link,
 		})
-	case "vlan test":
-		err = vlan.Test(&vlan.TestConfig{
-			Link: CLI.Vlan.Link,
-			ID:   CLI.Vlan.Test.ID,
+	case "line <message>":
+		err = line.SendMorseMessage(&line.SendMorseMessageConfig{
+			Interval: CLI.Line.Interval,
+			Message:  CLI.Line.Message,
+			Times:    CLI.Line.Times,
 		})
 	default:
 		k.PrintUsage(true)

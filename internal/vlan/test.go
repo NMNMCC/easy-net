@@ -13,8 +13,9 @@ import (
 )
 
 type TestConfig struct {
-	Link string
-	ID   uint16
+	Link    string
+	ID      uint16
+	Timeout time.Duration
 }
 
 var vlanTestLogger = log.New("vlan/test")
@@ -62,8 +63,8 @@ func Test(cfg *TestConfig) error {
 	vlanTestLogger.Info("brought up VLAN interface", "name", vlan.Name)
 
 	client := &client4.Client{
-		ReadTimeout:  1 * time.Second,
-		WriteTimeout: 1 * time.Second,
+		ReadTimeout:  cfg.Timeout,
+		WriteTimeout: cfg.Timeout,
 	}
 
 	vlanTestLogger.Info("exchanging DHCP", "name", vlan.Name)
