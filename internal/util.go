@@ -3,16 +3,17 @@ package internal
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"math/rand"
 	"net/http"
 	"net/url"
 	"regexp"
 	"time"
-
-	"github.com/samber/lo"
 )
 
 func TestConnection() (ok bool) {
+	logger := slog.With("component", "test-connection")
+
 	client := &http.Client{
 		Timeout: 3 * time.Second,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -22,44 +23,61 @@ func TestConnection() (ok bool) {
 		},
 	}
 
+	logger.Info("testing connection with http://captive.apple.com/hotspot-detect.html")
 	res, err := client.Get("http://captive.apple.com/hotspot-detect.html")
-	if err != nil {
+	if err != nil || res.StatusCode != http.StatusOK {
+		logger.Warn("connection test failed", "error", err, "status", res.StatusCode)
 		return false
 	}
 
-	if res.StatusCode != http.StatusOK {
-		return false
-	}
-
+	logger.Info("connection test succeeded")
 	return true
 }
 
+var (
+	ErrExpectRedirect    = fmt.Errorf("expect redirection")
+	ErrExpectRedirectURL = fmt.Errorf("expect redirect URL")
+)
+
 func FindPortal(host string) (string, error) {
+	logger := slog.With("component", "find-portal")
+
 	client := &http.Client{
 		Timeout: 3 * time.Second,
 	}
 
+	logger.Info("finding portal", "host", host)
 	u, _ := url.Parse("http://" + host)
 	res, err := client.Get(u.String())
 	if err != nil {
+		logger.Error("unknown error", "error", err)
 		return "", err
 	}
 	if res.Request.URL.String() == u.String() {
-		return "", fmt.Errorf("expect redirection")
+		logger.Warn("expect redirect", "url", u.String())
+		return "", ErrExpectRedirect
 	}
 
-	body := string(lo.Must(io.ReadAll(res.Body)))
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		logger.Warn("failed to read response body", "error", err)
+		return "", err
+	}
 
 	re := regexp.MustCompile(`window\.location\.href=\"(.*)"`)
 
-	matches := re.FindStringSubmatch(body)
+	matches := re.FindStringSubmatch(string(body))
 	if len(matches) < 2 {
-		return "", fmt.Errorf("failed to find portal URL")
+		logger.Warn("expect redirect URL", "body", string(body))
+		return "", ErrExpectRedirectURL
 	}
 
 	p, _ := url.Parse(matches[1])
 
-	return res.Request.URL.ResolveReference(p).String(), nil
+	final := res.Request.URL.ResolveReference(p).String()
+
+	logger.Info("found portal", "url", final)
+	return final, nil
 }
 
 // [04] Institute

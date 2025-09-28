@@ -3,6 +3,7 @@ package internal
 import (
 	"bytes"
 	"io"
+	"log/slog"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -34,6 +35,8 @@ func NewLogoutReq(base, userid string) (*http.Request, error) {
 }
 
 func Logout(base, userid string) error {
+	logger := slog.With("component", "logout")
+
 	client := &http.Client{
 		Timeout: 5 * time.Second,
 	}
@@ -43,9 +46,12 @@ func Logout(base, userid string) error {
 		return err
 	}
 
+	logger.Info("logging out", "userid", userid)
 	if _, err := client.Do(req); err != nil {
+		logger.Error("failed to log out", "error", err)
 		return err
 	}
 
+	logger.Info("logged out", "userid", userid)
 	return nil
 }

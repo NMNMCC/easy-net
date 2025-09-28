@@ -2,14 +2,13 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"log/slog"
 	"time"
 
 	"nmnm.cc/easy-net/internal"
 )
 
 const (
+	DefaultHost     = "3.3.3.3"
 	DefaultPassword = "112233"
 )
 
@@ -18,12 +17,10 @@ func main() {
 		return
 	}
 
-	base, err := internal.FindPortal("3.3.3.3")
+	base, err := internal.FindPortal(DefaultHost)
 	if err != nil {
-		fmt.Printf("failed to find portal: %s\n", err)
 		return
 	}
-	slog.Info("portal base", "base", base)
 
 	for {
 		tried := make(map[string]struct{})
@@ -40,11 +37,9 @@ func main() {
 
 			err := internal.Login(base, userid, DefaultPassword)
 			if err != nil {
-				fmt.Printf("login failed: %s %s\n", userid, err)
 				continue
 			}
 
-			fmt.Printf("login succeeded: %s\n", userid)
 			break
 		}
 
@@ -65,7 +60,6 @@ func main() {
 		switch ctx.Err() {
 		case context.DeadlineExceeded:
 			internal.Logout(base, userid)
-			fmt.Printf("login timed out: %s\n", userid)
 		case context.Canceled:
 			return
 		}

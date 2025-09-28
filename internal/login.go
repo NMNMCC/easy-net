@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"time"
@@ -56,6 +57,8 @@ func RandomLoginReq(base, password string) (*http.Request, error) {
 }
 
 func Login(base, userid, password string) error {
+	logger := slog.With("component", "login")
+
 	client := http.Client{
 		Timeout: 5 * time.Second,
 	}
@@ -65,24 +68,33 @@ func Login(base, userid, password string) error {
 		return err
 	}
 
+	logger.Info("logging in", "url", req.URL.String())
 	res, err := client.Do(req)
 	if err != nil {
+		logger.Error("unknown error", "error", err)
 		return err
 	}
 	if res.StatusCode != http.StatusOK {
+		logger.Error("unknown status code", "status", res.StatusCode)
 		return fmt.Errorf("login failed: %s", userid)
 	}
 
-	body := lo.Must(io.ReadAll(res.Body))
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		logger.Error("failed to read response body", "error", err)
+		return err
+	}
 
 	var data LoginRes
 	if err := json.Unmarshal(body, &data); err != nil {
-		return errors.Join(err, fmt.Errorf("%s", string(body)))
+		logger.Error("failed to parse response body", "error", err, "body", string(body))
+		return err
 	}
-
 	if data.Code != "0" {
+		logger.Error("login failed", "userid", userid, "code", data.Code, "message", data.Message)
 		return errors.New(string(lo.Must(json.Marshal(data))))
 	}
 
+	logger.Info("login succeeded", "userid", userid, "message", data.Message)
 	return nil
 }
