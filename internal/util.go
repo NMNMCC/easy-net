@@ -25,8 +25,12 @@ func TestConnection() (ok bool) {
 
 	logger.Info("testing connection with http://captive.apple.com/hotspot-detect.html")
 	res, err := client.Get("http://captive.apple.com/hotspot-detect.html")
-	if err != nil || res.StatusCode != http.StatusOK {
-		logger.Warn("connection test failed", "error", err, "status", res.StatusCode)
+	if err != nil {
+		logger.Warn("connection test failed", "error", err)
+		return false
+	}
+	if res.StatusCode != http.StatusOK {
+		logger.Warn("connection test failed", "status", res.StatusCode)
 		return false
 	}
 
