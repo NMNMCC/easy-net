@@ -8,9 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"time"
 
-	"github.com/google/uuid"
 	"github.com/samber/lo"
 	"nmnm.cc/easy-net/internal/log"
 	"nmnm.cc/easy-net/internal/util"
@@ -33,10 +31,6 @@ func NewLoginReq(
 
 	query.Set("userid", "756"+userid)
 	query.Set("passwd", password)
-
-	query.Set("hostname", uuid.NewString()[0:8])
-	query.Set("timestamp", fmt.Sprint(time.Now().Unix()))
-	query.Set("uuid", uuid.NewString())
 
 	url.RawQuery = query.Encode()
 
