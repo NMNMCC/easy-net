@@ -80,8 +80,8 @@ func FindPortal(host, link string) (string, error) {
 // [04] Class
 // [01] Number
 func RandomUserid() string {
-	institute := rand.Intn(8) + 1
-	year := rand.Intn(3) + time.Now().Year()%100 - 3
+	institute := rand.Intn(4) + 1
+	year := rand.Intn(2) + time.Now().Year()%100 - 3
 	class := rand.Intn(10) + 1
 	number := rand.Intn(30) + 1
 
