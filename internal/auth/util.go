@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
-	"net/http"
+	"net"
 	"net/url"
 	"regexp"
 	"time"
+
+	ping "github.com/go-ping/ping"
 
 	"nmnm.cc/easy-net/internal/log"
 	"nmnm.cc/easy-net/internal/util"
@@ -16,23 +18,78 @@ import (
 var utilLogger = log.New("auth/util")
 
 func TestConnection(link string) (ok bool) {
-	client := util.NewHTTPClient(link)
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
+	// Default target resolver: 9.9.9.9 (Quad9)
+	const target = "9.9.9.9"
 
-	utilLogger.Info("testing connection with http://captive.apple.com/hotspot-detect.html")
-	res, err := client.Get("http://captive.apple.com/hotspot-detect.html")
+	utilLogger.Info("testing connection with ICMP/UDP ping", "target", target, "link", link)
+
+	pinger, err := ping.NewPinger(target)
 	if err != nil {
-		utilLogger.Warn("connection test failed", "error", err)
-		return false
-	}
-	if res.StatusCode != http.StatusOK {
-		utilLogger.Warn("connection test failed", "status", res.StatusCode)
+		utilLogger.Warn("connection test failed: create pinger", "error", err)
 		return false
 	}
 
-	utilLogger.Info("connection test succeeded")
+	// Use unprivileged mode to avoid requiring CAP_NET_RAW; uses UDP fallback.
+	// This works for most environments but can be blocked by some firewalls.
+	pinger.SetPrivileged(false)
+	// Explicitly prefer UDP in unprivileged mode for clarity.
+	pinger.SetNetwork("udp")
+
+	// If a specific link (interface) is provided, attempt to set the source IP
+	// to ensure packets egress via the bound interface.
+	if link != "" {
+		ifi, ierr := net.InterfaceByName(link)
+		if ierr != nil {
+			utilLogger.Warn("failed to find interface for link", "link", link, "error", ierr)
+		} else {
+			addrs, aerr := ifi.Addrs()
+			if aerr != nil {
+				utilLogger.Warn("failed to get interface addresses", "link", link, "error", aerr)
+			} else {
+				var srcIP string
+				for _, addr := range addrs {
+					var ip net.IP
+					switch v := addr.(type) {
+					case *net.IPNet:
+						ip = v.IP
+					case *net.IPAddr:
+						ip = v.IP
+					}
+					if ip == nil {
+						continue
+					}
+					// Prefer IPv4 for 9.9.9.9
+					if v4 := ip.To4(); v4 != nil {
+						srcIP = v4.String()
+						break
+					}
+				}
+				if srcIP != "" {
+					pinger.Source = srcIP
+					utilLogger.Info("bound ping source IP", "source", srcIP)
+				} else {
+					utilLogger.Warn("no IPv4 address found on interface to bind source", "link", link)
+				}
+			}
+		}
+	}
+
+	// Tuning: small, quick check.
+	pinger.Count = 3
+	pinger.Timeout = 5 * time.Second
+	pinger.Interval = 800 * time.Millisecond
+
+	if err := pinger.Run(); err != nil {
+		utilLogger.Warn("connection test failed: run pinger", "error", err)
+		return false
+	}
+	stats := pinger.Statistics()
+	if stats.PacketsRecv == 0 {
+		utilLogger.Warn("connection test failed: no replies", "sent", stats.PacketsSent, "recv", stats.PacketsRecv)
+		return false
+	}
+
+	utilLogger.Info("connection test succeeded", "sent", stats.PacketsSent, "recv", stats.PacketsRecv, "loss", fmt.Sprintf("%.1f%%", stats.PacketLoss))
 	return true
 }
 
