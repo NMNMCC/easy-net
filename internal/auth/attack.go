@@ -9,12 +9,12 @@ import (
 )
 
 type AttackConfig struct {
-	Host        string
-	Base        string
-	Link        string
-	Password    string
-	Timeout     time.Duration
-	TargetSpeed string
+	Host     string
+	Base     string
+	Link     string
+	Password string
+	Timeout  time.Duration
+	// TargetSpeed string
 }
 
 var attackLogger = log.New("auth/attack")
@@ -54,6 +54,7 @@ func Attack(cfg *AttackConfig) error {
 				Password: cfg.Password,
 			}); err != nil {
 				attackLogger.Warn("failed to login", "error", err)
+				time.Sleep(1 * time.Second)
 				continue
 			}
 
