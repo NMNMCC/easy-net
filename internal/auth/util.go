@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
-	"net/http"
 	"net/url"
 	"regexp"
 	"time"
@@ -14,27 +13,6 @@ import (
 )
 
 var utilLogger = log.New("auth/util")
-
-func TestConnection(link string) (ok bool) {
-	client := util.NewHTTPClient(link)
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return http.ErrUseLastResponse
-	}
-
-	utilLogger.Info("testing connection with http://captive.apple.com/hotspot-detect.html")
-	res, err := client.Get("http://captive.apple.com/hotspot-detect.html")
-	if err != nil {
-		utilLogger.Warn("connection test failed", "error", err)
-		return false
-	}
-	if res.StatusCode != http.StatusOK {
-		utilLogger.Warn("connection test failed", "status", res.StatusCode)
-		return false
-	}
-
-	utilLogger.Info("connection test succeeded")
-	return true
-}
 
 var (
 	ErrExpectRedirect    = fmt.Errorf("expect redirection")
