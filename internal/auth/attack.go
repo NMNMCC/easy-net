@@ -51,10 +51,14 @@ func Attack(cfg *AttackConfig) error {
 			if errors.Is(err, ErrTooFast) {
 				attackLogger.Warn("too fast, try again later")
 				tooFastCount++
+				if tooFastCount > 5 {
+					continue
+				}
 				time.Sleep(time.Duration(5*(tooFastCount+1)) * time.Second)
 				goto TooFastRetry
 			}
 
+			time.Sleep(1 * time.Second)
 			tooFastCount = 0
 			attackLogger.Warn("failed to login", "error", err)
 			continue
