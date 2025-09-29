@@ -1,7 +1,7 @@
 //go:build !linux && !android
 // +build !linux,!android
 
-package auth
+package util
 
 import (
 	"log/slog"
@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func NewClient(link string) *http.Client {
+func NewHTTPClient(link string) *http.Client {
 	if link != "" {
 		slog.Warn("SO_BINDTODEVICE is not supported on this platform; falling back to default client", "link", link)
 	}

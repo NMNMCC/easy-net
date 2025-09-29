@@ -49,13 +49,6 @@ func Test(cfg *TestConfig) error {
 	}()
 	vlanTestLogger.Info("added VLAN interface", "name", vlan.Name)
 
-	// vlanTestLogger.Info("setting master and bringing up", "name", vlan.Name)
-	// if err := netlink.LinkSetMaster(vlan, master); err != nil {
-	// 	vlanTestLogger.Error("failed to set master for VLAN interface", "name", vlan.Name, "error", err)
-	// 	return err
-	// }
-	// vlanTestLogger.Info("set master for VLAN interface", "name", vlan.Name)
-
 	vlanTestLogger.Info("bringing up VLAN interface", "name", vlan.Name)
 	if err := netlink.LinkSetUp(vlan); err != nil {
 		return fmt.Errorf("failed to bring up VLAN interface %s: %w", vlan.Name, err)

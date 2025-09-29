@@ -1,7 +1,7 @@
 //go:build linux || android
 // +build linux android
 
-package auth
+package util
 
 import (
 	"context"
@@ -15,7 +15,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func NewClient(link string) *http.Client {
+func NewHTTPClient(link string) *http.Client {
 	if link == "" {
 		return &http.Client{
 			Timeout: 5 * time.Second,

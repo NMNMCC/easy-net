@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/samber/lo"
 	"nmnm.cc/easy-net/internal/log"
+	"nmnm.cc/easy-net/internal/util"
 )
 
 var loginLogger = log.New("auth/login")
@@ -67,7 +68,7 @@ type LoginConfig struct {
 }
 
 func Login(cfg *LoginConfig) error {
-	client := NewClient(cfg.Link)
+	client := util.NewHTTPClient(cfg.Link)
 
 	req, err := NewLoginReq(cfg.Base, cfg.UserID, cfg.Password)
 	if err != nil {

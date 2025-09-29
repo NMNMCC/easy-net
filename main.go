@@ -4,15 +4,15 @@ import (
 	"github.com/alecthomas/kong"
 	"nmnm.cc/easy-net/cli"
 	"nmnm.cc/easy-net/internal/auth"
-	"nmnm.cc/easy-net/internal/line"
 	"nmnm.cc/easy-net/internal/log"
+	"nmnm.cc/easy-net/internal/tool"
 	"nmnm.cc/easy-net/internal/vlan"
 )
 
 var CLI struct {
 	Auth cli.AuthCLI `cmd:"" help:"Authentication commands."`
 	Vlan cli.VlanCLI `cmd:"" help:"VLAN commands."`
-	Line cli.LineCLI `cmd:"line" help:"Send a message in Morse code."`
+	Tool cli.ToolCLI `cmd:"" help:"Tool commands."`
 }
 
 var logger = log.New("main")
@@ -59,7 +59,7 @@ func main() {
 			Host:     CLI.Auth.Host,
 			Link:     CLI.Auth.Link,
 			Password: CLI.Auth.Attack.Password,
-			Wait:     CLI.Auth.Attack.Wait,
+			Timeout:  CLI.Auth.Attack.Timeout,
 		})
 	case "vlan test":
 		err = vlan.Test(&vlan.TestConfig{
@@ -71,11 +71,17 @@ func main() {
 			Start: CLI.Vlan.Attack.Start,
 			Link:  CLI.Vlan.Link,
 		})
-	case "line <message>":
-		err = line.SendMorseMessage(&line.SendMorseMessageConfig{
-			Interval: CLI.Line.Interval,
-			Message:  CLI.Line.Message,
-			Times:    CLI.Line.Times,
+	case "tool morse <message>":
+		err = tool.SendMorseMessage(&tool.SendMorseMessageConfig{
+			Interval: CLI.Tool.Morse.Interval,
+			Message:  CLI.Tool.Morse.Message,
+			Times:    CLI.Tool.Morse.Times,
+		})
+	case "tool speedtest":
+		err = tool.Speedtest(&tool.SpeedtestConfig{
+			Link:    CLI.Tool.Speedtest.Link,
+			URL:     CLI.Tool.Speedtest.URL,
+			Timeout: CLI.Tool.Speedtest.Timeout,
 		})
 	default:
 		k.PrintUsage(true)

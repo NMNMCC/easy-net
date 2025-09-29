@@ -10,12 +10,13 @@ import (
 	"time"
 
 	"nmnm.cc/easy-net/internal/log"
+	"nmnm.cc/easy-net/internal/util"
 )
 
 var utilLogger = log.New("auth/util")
 
 func TestConnection(link string) (ok bool) {
-	client := NewClient(link)
+	client := util.NewHTTPClient(link)
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return http.ErrUseLastResponse
 	}
@@ -42,7 +43,7 @@ var (
 
 func FindPortal(host, link string) (string, error) {
 	// Use the bound client so detection traffic goes out through the specified link.
-	client := NewClient(link)
+	client := util.NewHTTPClient(link)
 
 	utilLogger.Info("finding portal", "host", host)
 	u, _ := url.Parse("http://" + host)

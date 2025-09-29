@@ -1,8 +1,9 @@
-package line
+package tool
 
 import (
 	"crypto/rand"
 	"fmt"
+	"io"
 	"net"
 	"strings"
 	"time"
@@ -114,30 +115,23 @@ func SendMorseMessage(cfg *SendMorseMessageConfig) error {
 			for _, s := range morse {
 				fmt.Printf("%c", s)
 
-				size := (1 << (10 * 2))
+				size := 1 << (10 * 2)
 
-				switch s {
-				case '.':
-					for range size {
-						buf := make([]byte, 1)
-						if _, err := rand.Read(buf); err != nil {
-							sendMorseMessageLogger.Error("failed to read random bytes", "err", err)
-							return err
-						}
+				reader := io.NopCloser(rand.Reader)
+				defer reader.Close()
 
-						conn.WriteTo(buf, addr)
+				go func() {
+					switch s {
+					case '.':
+						time.Sleep(cfg.Interval)
+					case '_':
+						time.Sleep(cfg.Interval * 3)
 					}
-				case '_':
-					for range size * 10 {
-						buf := make([]byte, 1)
-						if _, err := rand.Read(buf); err != nil {
-							sendMorseMessageLogger.Error("failed to read random bytes", "err", err)
-							return err
-						}
 
-						conn.WriteTo(buf, addr)
-					}
-				}
+					reader.Close()
+				}()
+
+				io.Copy(conn, io.LimitReader(reader, int64(size)))
 
 				time.Sleep(cfg.Interval * 3)
 			}

@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	"nmnm.cc/easy-net/internal/log"
+	"nmnm.cc/easy-net/internal/util"
 )
 
 var logoutLogger = log.New("auth/logout")
@@ -44,7 +45,7 @@ type LogoutConfig struct {
 }
 
 func Logout(cfg *LogoutConfig) error {
-	client := NewClient(cfg.Link)
+	client := util.NewHTTPClient(cfg.Link)
 
 	req, err := NewLogoutReq(cfg.Base, cfg.UserID)
 	if err != nil {
