@@ -93,8 +93,7 @@ func Login(cfg *LoginConfig) error {
 	if err := json.Unmarshal(body, &data); err != nil {
 		return fmt.Errorf("failed to parse response body: %w", err)
 	}
-	// || data.Message != "认证成功"
-	if data.Code != "0" {
+	if data.Code != "0" || data.Message != "认证成功" {
 		loginLogger.Error("login failed", "userid", cfg.UserID, "code", data.Code, "message", data.Message)
 		return errors.New(string(lo.Must(json.Marshal(data))))
 	}
