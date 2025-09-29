@@ -60,6 +60,7 @@ func main() {
 			Link:     CLI.Auth.Link,
 			Password: CLI.Auth.Attack.Password,
 			Timeout:  CLI.Auth.Attack.Timeout,
+			// TargetSpeed: CLI.Auth.Attack.TargetSpeed,
 		})
 	case "vlan test":
 		err = vlan.Test(&vlan.TestConfig{

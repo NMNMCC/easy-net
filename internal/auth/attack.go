@@ -9,11 +9,12 @@ import (
 )
 
 type AttackConfig struct {
-	Host     string
-	Base     string
-	Link     string
-	Password string
-	Timeout  time.Duration
+	Host        string
+	Base        string
+	Link        string
+	Password    string
+	Timeout     time.Duration
+	TargetSpeed string
 }
 
 var attackLogger = log.New("auth/attack")

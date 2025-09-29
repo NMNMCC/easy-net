@@ -33,6 +33,8 @@ jobs:
         goos: [linux, windows, darwin]
         goarch: [amd64, arm64]
         include:
+          - goos: linux
+            goarch: arm
           - goos: android
             goarch: arm64
     steps:
