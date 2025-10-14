@@ -4,7 +4,6 @@ go 1.24.6
 
 require (
 	github.com/dustin/go-humanize v1.0.1
-	github.com/google/uuid v1.6.0
 	github.com/insomniacslk/dhcp v0.0.0-20250919081422-f80a1952f48e
 	github.com/samber/lo v1.51.0
 	github.com/vishvananda/netlink v1.3.1

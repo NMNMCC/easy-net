@@ -79,7 +79,7 @@ func main() {
 			Times:    CLI.Tool.Morse.Times,
 		})
 	case "tool speedtest":
-		err = tool.Speedtest(&tool.SpeedtestConfig{
+		_, err = tool.Speedtest(&tool.SpeedtestConfig{
 			Link:    CLI.Tool.Speedtest.Link,
 			URL:     CLI.Tool.Speedtest.URL,
 			Timeout: CLI.Tool.Speedtest.Timeout,

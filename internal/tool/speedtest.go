@@ -16,15 +16,21 @@ type SpeedtestConfig struct {
 	Timeout time.Duration
 }
 
+var Mb = uint64(1_000_000 / 8)
+
+type SpeedtestResult struct {
+	Speed uint64
+}
+
 var speedtestLogger = log.New("tool/speedtest")
 
-func Speedtest(cfg *SpeedtestConfig) error {
+func Speedtest(cfg *SpeedtestConfig) (*SpeedtestResult, error) {
 	client := util.NewHTTPClient(cfg.Link)
 
 	speedtestLogger.Info("performing speed test", "url", cfg.URL)
 	res, err := client.Get(cfg.URL)
 	if err != nil {
-		return fmt.Errorf("failed to perform speed test: %w", err)
+		return nil, fmt.Errorf("failed to perform speed test: %w", err)
 	}
 	defer res.Body.Close()
 
@@ -37,9 +43,12 @@ func Speedtest(cfg *SpeedtestConfig) error {
 	written, _ := io.Copy(io.Discard, res.Body)
 	duration := time.Since(start)
 
-	speed := humanize.Bytes(uint64(float64(written)/duration.Seconds())) + "/s"
+	speed := uint64(float64(written) / duration.Seconds())
+	speed_human := humanize.Bytes(speed) + "/s"
 
-	speedtestLogger.Info("speed test completed", "url", cfg.URL, "duration", duration, "bytes", written, "speed", speed)
+	speedtestLogger.Info("speed test completed", "url", cfg.URL, "duration", duration, "bytes", written, "speed", speed_human)
 
-	return nil
+	return &SpeedtestResult{
+		Speed: speed,
+	}, nil
 }
