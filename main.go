@@ -59,6 +59,7 @@ func main() {
 			Host:     CLI.Auth.Host,
 			Link:     CLI.Auth.Link,
 			Password: CLI.Auth.Attack.Password,
+			Range:    CLI.Auth.Attack.Range,
 			Timeout:  CLI.Auth.Attack.Timeout,
 			// TargetSpeed: CLI.Auth.Attack.TargetSpeed,
 		})

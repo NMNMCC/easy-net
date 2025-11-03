@@ -15,8 +15,9 @@ type AuthCLI struct {
 		UserID string `help:"User ID." required:"" short:"u"`
 	} `cmd:"" help:"Logout from the network."`
 	Attack struct {
-		Password string        `help:"Password." required:"" default:"112233" short:"p"`
+		Password string        `help:"Password." default:"112233" short:"p"`
 		Timeout  time.Duration `help:"Timeout for connection verification." default:"15s" short:"t"`
+		Range    string        `help:"User ID range to attack, format: 00000000-XXXXXXXX." default:"01230101-08251030" short:"r"`
 		// TargetSpeed string        `help:"Target speed for connection verification." default:"15Mbps" short:"s"`
 	} `cmd:"" help:"Attack the network."`
 }

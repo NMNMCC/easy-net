@@ -48,11 +48,11 @@ type LoginRes struct {
 	UserID            string `json:"userId"`
 }
 
-func RandomLoginReq(base, password string) (*http.Request, error) {
-	userid := RandomUserid()
+// func RandomLoginReq(base, password string) (*http.Request, error) {
+// 	userid := RandomUserid()
 
-	return NewLoginReq(base, userid, password)
-}
+// 	return NewLoginReq(base, userid, password)
+// }
 
 type LoginConfig struct {
 	Base     string

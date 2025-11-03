@@ -3,10 +3,11 @@ package auth
 import (
 	"fmt"
 	"io"
-	"math/rand"
+	"math/rand/v2"
 	"net/url"
 	"regexp"
-	"time"
+	"strconv"
+	"strings"
 
 	"nmnm.cc/easy-net/internal/log"
 	"nmnm.cc/easy-net/internal/util"
@@ -53,17 +54,74 @@ func FindPortal(host, link string) (string, error) {
 	return final, nil
 }
 
-// [04] Institute
-// [24] Year of Admission
-// [04] Class
-// [01] Number
-func RandomUserid() string {
-	institute := rand.Intn(6) + 1
-	year := rand.Intn(4) - 3 + time.Now().Year()%100
-	class := rand.Intn(12) + 1
-	number := rand.Intn(36) + 1
-
-	return fmt.Sprintf("%02d%02d%02d%02d", institute, year, class, number)
+func randomUint32N(min, max uint64) uint64 {
+	return rand.Uint64N(max-min+1) + min
 }
 
-// NewClient is implemented in platform-specific files.
+func RandomUserid(
+	// [04] Institute
+	instituteMin, instituteMax,
+	// [24] Year of Admission
+	yearMin, yearMax,
+	// [04] Class
+	classMin, classMax,
+	// [01] Number
+	idMin, idMax uint64,
+) string {
+	institute := randomUint32N(instituteMin, instituteMax)
+	year := randomUint32N(yearMin, yearMax) % 100
+	class := randomUint32N(classMin, classMax)
+	id := randomUint32N(idMin, idMax)
+
+	return fmt.Sprintf("%02d%02d%02d%02d", institute, year, class, id)
+}
+
+// 00000000-XXXXXXXX
+func ParseRange(r string) (
+	// [04] Institute
+	instituteMin, instituteMax,
+	// [24] Year of Admission
+	yearMin, yearMax,
+	// [04] Class
+	classMin, classMax,
+	// [01] Number
+	idMin, idMax uint64, err error) {
+	parts := strings.SplitN(r, "-", 2)
+	min := parts[0]
+	max := parts[1]
+
+	iMin, err := strconv.ParseUint(min[0:2], 10, 64)
+	if err != nil {
+		return uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), err
+	}
+	iMax, err := strconv.ParseUint(max[0:2], 10, 64)
+	if err != nil {
+		return uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), err
+	}
+	yMin, err := strconv.ParseUint(min[2:4], 10, 64)
+	if err != nil {
+		return uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), err
+	}
+	yMax, err := strconv.ParseUint(max[2:4], 10, 64)
+	if err != nil {
+		return uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), err
+	}
+	cMin, err := strconv.ParseUint(min[4:6], 10, 64)
+	if err != nil {
+		return uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), err
+	}
+	cMax, err := strconv.ParseUint(max[4:6], 10, 64)
+	if err != nil {
+		return uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), err
+	}
+	dMin, err := strconv.ParseUint(min[6:8], 10, 64)
+	if err != nil {
+		return uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), err
+	}
+	dMax, err := strconv.ParseUint(max[6:8], 10, 64)
+	if err != nil {
+		return uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), uint64(0), err
+	}
+
+	return iMin, iMax, yMin + 1000, yMax + 1000, cMin, cMax, dMin, dMax, nil
+}
